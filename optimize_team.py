@@ -15,27 +15,23 @@ BUDGET_CONSTRAINT = 30.7 * 10**6
 
 # Define the fitness function
 def fitness(individual):
-    selected_players = players_data[players_data.index.isin([i for i, selected in enumerate(individual) if selected])]
+    selected_players = players_data[individual == 1]
     total_cost = selected_players['cost'].sum()
     total_points = selected_players['predicted_points'].sum()
-    
-num_defenders = (selected_players['position'] == 'DEFENDER').sum()
-num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
-num_forwards = (selected_players['position'] == 'FORWARD').sum()
-total_players = num_defenders + num_midfielders + num_forwards
 
-if num_defenders != 3 or num_midfielders < 3 or num_midfielders > 5 or num_forwards < 1 or num_forwards > 3 or total_players != 10:
-    return (-1,)
-
-
+    # Position constraints
+    num_defenders = (selected_players['position'] == 'DEFENDER').sum()
     num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
     num_forwards = (selected_players['position'] == 'FORWARD').sum()
+    total_players = num_defenders + num_midfielders + num_forwards
 
-    # Apply penalties for constraint violations
-    if total_cost > budget_constraint or num_defenders != 3 or num_midfielders != 4 or num_forwards != 3:
-        total_points -= 10000  # Large penalty for invalid solutions
+    if total_cost > BUDGET_CONSTRAINT:
+        return (-1,)
+    if num_defenders != 3 or num_midfielders < 3 or num_midfielders > 5 or num_forwards < 1 or num_forwards > 3 or total_players != 10:
+        return (-1,)
+    
+    return (total_points,)
 
-    return total_points,
 
 # Create individual initialization function
 def create_individual():
