@@ -102,7 +102,7 @@ stats.register("avg", lambda x: sum(val[0] for val in x) / len(x))
 stats.register("min", min)
 stats.register("max", max)
 
-population, log = algorithms.eaSimple(population, toolbox, cxpb=0.5, mutpb=0.2, ngen=50, stats=stats)
+population, log = algorithms.eaSimple(population, toolbox, cxpb=0.5, mutpb=0.2, ngen=500, stats=stats)
 
 # Print the best individual
 best_individual = tools.selBest(population, 1)[0]
