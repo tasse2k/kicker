@@ -11,7 +11,7 @@ valid_positions = ['DEFENDER', 'MIDFIELDER', 'FORWARD']
 players_data = players_data[players_data['position'].isin(valid_positions)].reset_index(drop=True)
 
 # Budget constraint
-budget_constraint = 30.7 * 10**6
+BUDGET_CONSTRAINT = 30.7 * 10**6
 
 # Define the fitness function
 def fitness(individual):
@@ -19,6 +19,8 @@ def fitness(individual):
     total_cost = selected_players['cost'].sum()
     total_points = selected_players['predicted_points'].sum()
     num_defenders = (selected_players['position'] == 'DEFENDER').sum()
+    if num_defenders != 3 or num_midfielders < 3 or num_midfielders > 5 or num_forwards < 1 or num_forwards > 3 or total_players != 10:
+        return (-1,)
     num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
     num_forwards = (selected_players['position'] == 'FORWARD').sum()
 
@@ -67,6 +69,7 @@ toolbox.register("individual", tools.initIterate, creator.Individual, create_ind
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 toolbox.register("evaluate", fitness)
 toolbox.register("mate", tools.cxTwoPoint)
+toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
 toolbox.register("mutate", custom_mutation)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
@@ -87,3 +90,25 @@ selected_players = players_data[players_data.index.isin([i for i, selected in en
 print(selected_players)
 print("Total Predicted Points:", sum(selected_players['predicted_points']))
 print("Total Cost:", sum(selected_players['cost']))
+
+# Extract and Display Results
+best_individual = tools.selBest(population, 1)[0]
+best_players = players_data[best_individual == 1]
+
+def print_section(title, players):
+    print(title)
+    for _, player in players.iterrows():
+        print(f"{player['club']} - {player['name']} - Predicted Points: {player['predicted_points']}")
+
+print_section("FORWARD", best_players[best_players['position'] == 'FORWARD'])
+print_section("MIDFIELDER", best_players[best_players['position'] == 'MIDFIELDER'])
+print_section("DEFENDER", best_players[best_players['position'] == 'DEFENDER'])
+
+print("\nSummary")
+print("Sum of predicted points:", best_players['predicted_points'].sum())
+print("Sum of predicted lower bounds:", best_players['lower_bound'].sum())
+print("Sum of predicted upper bounds:", best_players['upper_bound'].sum())
+
+total_budget_used = best_players['cost'].sum()
+print("\nTotal Budget Used:", total_budget_used)
+print("Budget Remaining:", BUDGET_CONSTRAINT - total_budget_used)
