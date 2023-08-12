@@ -15,15 +15,17 @@ BUDGET_CONSTRAINT = 30.7 * 10**6
 
 # Define the fitness function
 def fitness(individual):
-    selected_players = players_data.loc[individual]
-    total_cost = selected_players['cost'].sum()
-    total_points = selected_players['predicted_points'].sum()
+   num_defenders = sum(players_data.loc[individual, 'position'] == 'DEFENDER')
+num_midfielders = sum(players_data.loc[individual, 'position'] == 'MIDFIELDER')
+num_forwards = sum(players_data.loc[individual, 'position'] == 'FORWARD')
+total_players = sum(individual)
 
-    # Position constraints
-    num_defenders = (selected_players['position'] == 'DEFENDER').sum()
-    num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
-    num_forwards = (selected_players['position'] == 'FORWARD').sum()
-    total_players = num_defenders + num_midfielders + num_forwards
+if (num_defenders < 3 or num_defenders > 4 or
+    num_midfielders < 3 or num_midfielders > 5 or
+    num_forwards < 1 or num_forwards > 3 or
+    total_players != 10):
+    return (-1,)
+
 
     if total_cost > BUDGET_CONSTRAINT:
         return (-1,)
@@ -45,23 +47,29 @@ def create_individual():
 
 # Custom mutation function to respect constraints
 def custom_mutation(individual):
-    position_counts = {'DEFENDER': 0, 'MIDFIELDER': 0, 'FORWARD': 0}
-    for i, selected in enumerate(individual):
-        if selected:
-            position = players_data.iloc[i]['position']
-            position_counts[position] += 1
+    i = random.randint(0, len(individual) - 1)
+    if individual[i] == 0:
+        individual[i] = 1
+    else:
+        individual[i] = 0
 
-    # Mutate by flipping one bit and ensuring constraints
-    for _ in range(10):  # Try 10 times
-        i = random.randint(0, len(individual) - 1)
-        position = players_data.iloc[i]['position']
-        if individual[i] == 0 and position_counts[position] < {'DEFENDER': 3, 'MIDFIELDER': 4, 'FORWARD': 3}[position]:
+    # Ensure constraints are met
+    num_defenders = sum(players_data.loc[individual, 'position'] == 'DEFENDER')
+    num_midfielders = sum(players_data.loc[individual, 'position'] == 'MIDFIELDER')
+    num_forwards = sum(players_data.loc[individual, 'position'] == 'FORWARD')
+    total_players = sum(individual)
+
+    if (num_defenders < 3 or num_defenders > 4 or
+        num_midfielders < 3 or num_midfielders > 5 or
+        num_forwards < 1 or num_forwards > 3 or
+        total_players != 10):
+        # Reverse the mutation if constraints are violated
+        if individual[i] == 0:
             individual[i] = 1
-            return individual,
-        elif individual[i] == 1 and position_counts[position] > {'DEFENDER': 3, 'MIDFIELDER': 4, 'FORWARD': 3}[position]:
+        else:
             individual[i] = 0
-            return individual,
-    return individual,  # Return original if no successful mutation
+
+    return individual,
 
 # Create DEAP tools and algorithms
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
