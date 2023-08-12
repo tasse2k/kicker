@@ -41,16 +41,17 @@ def fitness(individual):
 # Create individual initialization function
 def create_individual():
     individual = [0] * len(players_data)
-    positions_to_pick = [('FORWARD', 1), ('MIDFIELDER', 2), ('DEFENDER', 2)]
 
-    for position, count in positions_to_pick:
-        available_players = players_data[(players_data['position'] == position) & 
-                                         (players_data['predicted_points'] > 150)].nlargest(count, 'points_per_cost').index
-        for idx in available_players:
+    # Select the best FORWARD, MIDFIELDER, and DEFENDER based on points_per_cost
+    for position, count in [('FORWARD', 1), ('MIDFIELDER', 2), ('DEFENDER', 2)]:
+        selected_players = players_data[(players_data['position'] == position) &
+                                        (players_data['predicted_points'] > 150)].nlargest(count, 'points_per_cost').index
+        for idx in selected_players:
             individual[idx] = 1
 
+    # Select remaining players randomly based on points_per_cost
     remaining_count = 10 - sum(individual)
-    remaining_players = players_data[individual == 0].nlargest(remaining_count, 'points_per_cost').index
+    remaining_players = players_data.loc[individual == np.zeros_like(individual)].nlargest(remaining_count, 'points_per_cost').index
     for idx in remaining_players:
         individual[idx] = 1
 
