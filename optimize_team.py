@@ -18,9 +18,15 @@ def fitness(individual):
     selected_players = players_data[players_data.index.isin([i for i, selected in enumerate(individual) if selected])]
     total_cost = selected_players['cost'].sum()
     total_points = selected_players['predicted_points'].sum()
-    num_defenders = (selected_players['position'] == 'DEFENDER').sum()
-    if num_defenders != 3 or num_midfielders < 3 or num_midfielders > 5 or num_forwards < 1 or num_forwards > 3 or total_players != 10:
-        return (-1,)
+    
+num_defenders = (selected_players['position'] == 'DEFENDER').sum()
+num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
+num_forwards = (selected_players['position'] == 'FORWARD').sum()
+total_players = num_defenders + num_midfielders + num_forwards
+
+if num_defenders != 3 or num_midfielders < 3 or num_midfielders > 5 or num_forwards < 1 or num_forwards > 3 or total_players != 10:
+    return (-1,)
+
     num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
     num_forwards = (selected_players['position'] == 'FORWARD').sum()
 
