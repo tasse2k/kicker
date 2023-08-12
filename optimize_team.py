@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+import numpy as np
 from deap import base, creator, tools, algorithms
 
 # Path to the CSV file containing the players' data (adjust this path)
