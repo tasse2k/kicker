@@ -27,6 +27,7 @@ total_players = num_defenders + num_midfielders + num_forwards
 if num_defenders != 3 or num_midfielders < 3 or num_midfielders > 5 or num_forwards < 1 or num_forwards > 3 or total_players != 10:
     return (-1,)
 
+
     num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
     num_forwards = (selected_players['position'] == 'FORWARD').sum()
 
