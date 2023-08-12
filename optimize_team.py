@@ -1,48 +1,62 @@
 import pandas as pd
 
-# Path to the CSV file containing the players' data
-file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
-players_data = pd.read_csv(file_name)
+# Read the data from the CSV file
+file_path = "path/to/your/players-data.csv"  # Update with your file path
+players_data = pd.read_csv(file_path)
 
-# Budget constraint
+# Define the initial players by their IDs
+player_ids = ["pl-k00133398", "pl-k00110717", "pl-k00076954", "pl-k00057343", "pl-k00058007", "pl-k00066753", "pl-k00086138", "pl-k00058003", "pl-k00111367", "pl-k00081465"]
+initial_indices = [players_data[players_data['ID'] == player_id].index[0] for player_id in player_ids]
+
+# Define the budget constraint
 BUDGET_CONSTRAINT = 30.7 * 10**6
 
-# Initial players by IDs
-player_ids = [
-    "pl-k00133398", "pl-k00110717", "pl-k00076954", "pl-k00057343",
-    "pl-k00058007", "pl-k00066753", "pl-k00086138", "pl-k00058003",
-    "pl-k00111367", "pl-k00081465"
-]
-initial_indices = [players_data[players_data['id'] == player_id].index[0] for player_id in player_ids]
+# Function to calculate the total score and cost
+def calculate_score_and_cost(indices):
+    total_score = players_data.loc[indices, 'predicted_points'].sum()
+    total_cost = players_data.loc[indices, 'cost'].sum()
+    return total_score, total_cost
 
-# Optimization function
-def optimize_team(initial_indices):
-    current_team_indices = initial_indices.copy()
+# Function to check if the team is valid
+def is_valid_team(indices):
+    selected_players = players_data.loc[indices]
+    num_defenders = (selected_players['position'] == 'DEFENDER').sum()
+    num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
+    num_forwards = (selected_players['position'] == 'FORWARD').sum()
+    return (
+        num_defenders >= 3 and num_defenders <= 4 and
+        num_midfielders >= 3 and num_midfielders <= 5 and
+        num_forwards >= 1 and num_forwards <= 3 and
+        len(indices) == 10
+    )
 
-    while True:
-        improvement_found = False
-        for player_index in current_team_indices:
-            player_to_replace = players_data.loc[player_index]
-            available_players = players_data[
-                (players_data['cost'] <= player_to_replace['cost']) &
-                (players_data.index != player_index) &
-                (players_data['predicted_points'] > player_to_replace['predicted_points']) &
-                (players_data['position'] == player_to_replace['position'])
-            ]
+# Optimization logic
+best_indices = initial_indices.copy()
+best_score, best_cost = calculate_score_and_cost(best_indices)
 
-            if not available_players.empty:
-                replacement_player = available_players.nlargest(1, 'predicted_points').iloc[0]
-                current_team_indices[current_team_indices.index(player_index)] = replacement_player.name
-                improvement_found = True
-                break
+# Iterate over each player in the team
+for idx in initial_indices:
+    # Iterate over each player in the dataset
+    for replacement_idx in players_data.index:
+        # Skip if the replacement player is already in the team
+        if replacement_idx in best_indices:
+            continue
         
-        if not improvement_found:
-            break
+        # Check if the replacement player has the same position
+        if players_data.loc[idx, 'position'] != players_data.loc[replacement_idx, 'position']:
+            continue
+        
+        # Replace the player and check the new score and cost
+        new_indices = [replacement_idx if i == idx else i for i in best_indices]
+        new_score, new_cost = calculate_score_and_cost(new_indices)
+        
+        # If the new team is valid and the score is improved, update the best team
+        if new_score > best_score and new_cost <= BUDGET_CONSTRAINT and is_valid_team(new_indices):
+            best_score = new_score
+            best_indices = new_indices
 
-    return current_team_indices
-
-optimized_indices = optimize_team(initial_indices)
-best_players = players_data.loc[optimized_indices]
+# Display the results
+best_players = players_data.loc[best_indices]
 
 def print_section(title, players):
     print(title)
