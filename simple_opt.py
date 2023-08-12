@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Read the data from the CSV file
-file_path = "path/to/your/players-data.csv"  # Update with your file path
+file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
 players_data = pd.read_csv(file_path)
 
 # Define the initial players by their IDs
