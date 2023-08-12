@@ -38,12 +38,21 @@ if (num_defenders < 3 or num_defenders > 4 or
 # Create individual initialization function
 def create_individual():
     individual = [0] * len(players_data)
-    for position, count in [('DEFENDER', 3), ('MIDFIELDER', 4), ('FORWARD', 3)]:
-        available_players = players_data[players_data['position'] == position].index.tolist()
-        selected_players = random.sample(available_players, min(count, len(available_players)))
-        for idx in selected_players:
+    positions_to_pick = [('FORWARD', 1), ('MIDFIELDER', 2), ('DEFENDER', 2)]
+
+    for position, count in positions_to_pick:
+        available_players = players_data[(players_data['position'] == position) & 
+                                         (players_data['predicted_points'] > 150)].nlargest(count, 'points_per_cost').index
+        for idx in available_players:
             individual[idx] = 1
+
+    remaining_count = 10 - sum(individual)
+    remaining_players = players_data[individual == 0].nlargest(remaining_count, 'points_per_cost').index
+    for idx in remaining_players:
+        individual[idx] = 1
+
     return creator.Individual(individual)
+
 
 # Custom mutation function to respect constraints
 def custom_mutation(individual):
