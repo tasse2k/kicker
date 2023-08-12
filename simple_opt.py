@@ -2,7 +2,7 @@ import pandas as pd
 
 # Read the data from the CSV file
 file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
-players_data = pd.read_csv(file_path)
+players_data = pd.read_csv(file_name)
 
 # Define the initial players by their IDs
 player_ids = ["pl-k00133398", "pl-k00110717", "pl-k00076954", "pl-k00057343", "pl-k00058007", "pl-k00066753", "pl-k00086138", "pl-k00058003", "pl-k00111367", "pl-k00081465"]
