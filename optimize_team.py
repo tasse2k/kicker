@@ -15,7 +15,7 @@ BUDGET_CONSTRAINT = 30.7 * 10**6
 
 # Define the fitness function
 def fitness(individual):
-    selected_players = players_data[individual == 1]
+    selected_players = players_data.loc[individual == 1]
     total_cost = selected_players['cost'].sum()
     total_points = selected_players['predicted_points'].sum()
 
