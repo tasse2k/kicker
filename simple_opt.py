@@ -1,4 +1,5 @@
 import pandas as pd
+import random
 
 # Read the data from the CSV file
 file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
@@ -55,23 +56,42 @@ for idx in initial_indices:
             best_score = new_score
             best_indices = new_indices
 
-# Display the results
-best_players = players_data.loc[best_indices]
+# Additional optimization to replace top two most expensive players
+for iteration in range(10):
+    print(f"\nIteration {iteration + 1}")
 
-def print_section(title, players):
-    print(title)
-    for _, player in players.iterrows():
-        print(f"{player['club']} - {player['name']} - Predicted Points: {player['predicted_points']}")
+    # Get top two most expensive players
+    expensive_players = sorted(best_indices, key=lambda x: players_data.loc[x, 'cost'], reverse=True)[:2]
 
-print_section("FORWARD", best_players[best_players['position'] == 'FORWARD'])
-print_section("MIDFIELDER", best_players[best_players['position'] == 'MIDFIELDER'])
-print_section("DEFENDER", best_players[best_players['position'] == 'DEFENDER'])
+    # Attempt to replace with cheaper players
+    for player_index in expensive_players:
+        position = players_data.loc[player_index, 'position']
+        original_cost = players_data.loc[player_index, 'cost']
+        replacements = []
 
-print("\nSummary")
-print("Sum of predicted points:", best_players['predicted_points'].sum())
-print("Sum of predicted lower bounds:", best_players['lower_bound'].sum())
-print("Sum of predicted upper bounds:", best_players['upper_bound'].sum())
+        # Look for alternatives that cost exactly 2,000,000 less
+        target_cost = original_cost - 2000000
+        alternatives = players_data[(players_data['position'] == position) & (players_data['cost'] == target_cost)]
+        replacements.extend(alternatives.index.tolist())
 
-total_budget_used = best_players['cost'].sum()
-print("\nTotal Budget Used:", total_budget_used)
-print("Budget Remaining:", BUDGET_CONSTRAINT - total_budget_used)
+        # If no alternatives found, look for alternatives that cost exactly 500,000 less
+        if not replacements:
+            target_cost = original_cost - 500000
+            alternatives = players_data[(players_data['position'] == position) & (players_data['cost'] == target_cost)]
+            replacements.extend(alternatives.index.tolist())
+
+        if replacements:
+            replacement = random.choice(replacements)
+            best_indices.remove(player_index)
+            best_indices.append(replacement)
+
+    # Print results
+    print("Current Team:")
+    team = players_data.loc[best_indices]
+    print_section("FORWARD", team[team['position'] == 'FORWARD'])
+    print_section("MIDFIELDER", team[team['position'] == 'MIDFIELDER'])
+    print_section("DEFENDER", team[team['position'] == 'DEFENDER'])
+    print("\nTotal Predicted Points:", team['predicted_points'].sum())
+    print("Total Cost:", team['cost'].sum())
+    print("Budget Remaining:", BUDGET_CONSTRAINT - team['cost'].sum())
+    print("=" * 50)
