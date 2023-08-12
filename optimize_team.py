@@ -75,7 +75,7 @@ population = toolbox.population(n=300)
 
 # Run genetic algorithm
 stats = tools.Statistics(key=lambda ind: ind.fitness.values)
-stats.register("avg", lambda x: sum(x) / len(x))
+stats.register("avg", lambda x: sum(val[0] for val in x) / len(x))
 stats.register("min", min)
 stats.register("max", max)
 
