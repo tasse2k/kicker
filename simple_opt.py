@@ -9,6 +9,9 @@ player_ids = ["pl-k00133398", "pl-k00110717", "pl-k00076954", "pl-k00057343",
               "pl-k00058007", "pl-k00066753", "pl-k00086138", "pl-k00058003",
               "pl-k00111367", "pl-k00081465"]
 
+# Replace 'id' with the correct column name
+initial_indices = [players_data[players_data['id'] == player_id].index[0] for player_id in player_ids]
+
 # Convert IDs to indices
 initial_indices = [players_data[players_data['id'] == player_id].index[0] for player_id in player_ids]
 
