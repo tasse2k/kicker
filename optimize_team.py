@@ -3,7 +3,7 @@ import pandas as pd
 from deap import base, creator, tools, algorithms
 
 # Path to the CSV file containing the players' data (adjust this path)
-file_name = "C:\Users\bjoer\Documents\GitHub\kicker\players-data.csv"
+file_name = file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
 players_data = pd.read_csv(file_name)
 
 # Filter players for valid positions and reset index
