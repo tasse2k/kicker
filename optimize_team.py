@@ -3,7 +3,7 @@ import pandas as pd
 from deap import base, creator, tools, algorithms
 
 # Path to the CSV file containing the players' data (adjust this path)
-file_name = file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
+file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
 players_data = pd.read_csv(file_name)
 
 # Filter players for valid positions and reset index
@@ -15,17 +15,16 @@ BUDGET_CONSTRAINT = 30.7 * 10**6
 
 # Define the fitness function
 def fitness(individual):
-   num_defenders = sum(players_data.loc[individual, 'position'] == 'DEFENDER')
-num_midfielders = sum(players_data.loc[individual, 'position'] == 'MIDFIELDER')
-num_forwards = sum(players_data.loc[individual, 'position'] == 'FORWARD')
-total_players = sum(individual)
+    num_defenders = sum(players_data.loc[individual, 'position'] == 'DEFENDER')
+    num_midfielders = sum(players_data.loc[individual, 'position'] == 'MIDFIELDER')
+    num_forwards = sum(players_data.loc[individual, 'position'] == 'FORWARD')
+    total_players = sum(individual)
 
-if (num_defenders < 3 or num_defenders > 4 or
-    num_midfielders < 3 or num_midfielders > 5 or
-    num_forwards < 1 or num_forwards > 3 or
-    total_players != 10):
-    return (-1,)
-
+    if (num_defenders < 3 or num_defenders > 4 or
+        num_midfielders < 3 or num_midfielders > 5 or
+        num_forwards < 1 or num_forwards > 3 or
+        total_players != 10):
+        return (-1,)
 
     if total_cost > BUDGET_CONSTRAINT:
         return (-1,)
@@ -33,6 +32,7 @@ if (num_defenders < 3 or num_defenders > 4 or
         return (-1,)
     
     return (total_points,)
+
 
 
 # Create individual initialization function
