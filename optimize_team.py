@@ -13,7 +13,7 @@ player_ids = [
     "pl-k00058007", "pl-k00066753", "pl-k00086138", "pl-k00058003",
     "pl-k00111367", "pl-k00081465"
 ]
-initial_indices = [players_data[players_data['ID'] == player_id].index[0] for player_id in player_ids]
+initial_indices = [players_data[players_data['id'] == player_id].index[0] for player_id in player_ids]
 
 # Optimization function
 def optimize_team(initial_indices):
