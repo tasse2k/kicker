@@ -6,6 +6,9 @@ from deap import base, creator, tools, algorithms
 file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
 players_data = pd.read_csv(file_name)
 
+# Calculate points per cost
+players_data['points_per_cost'] = players_data['predicted_points'] / players_data['cost']
+
 # Filter players for valid positions and reset index
 valid_positions = ['DEFENDER', 'MIDFIELDER', 'FORWARD']
 players_data = players_data[players_data['position'].isin(valid_positions)].reset_index(drop=True)
