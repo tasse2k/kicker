@@ -95,9 +95,8 @@ print("Total Predicted Points:", sum(selected_players['predicted_points']))
 print("Total Cost:", sum(selected_players['cost']))
 
 # Extract and Display Results
-best_individual = tools.selBest(population, 1)[0]
+best_individual = [bool(val) for val in tools.selBest(population, 1)[0]]
 best_players = players_data.loc[best_individual]
-
 
 def print_section(title, players):
     print(title)
