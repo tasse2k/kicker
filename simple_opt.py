@@ -9,7 +9,7 @@ player_ids = ["pl-k00133398", "pl-k00110717", "pl-k00076954", "pl-k00057343", "p
 initial_indices = [players_data[players_data['ID'] == player_id].index[0] for player_id in player_ids]
 
 # Define the budget constraint
-BUDGET_CONSTRAINT = 30.7 * 10**6
+BUDGET_CONSTRAINT = 32.5 * 10**6
 
 # Function to calculate the total score and cost
 def calculate_score_and_cost(indices):
