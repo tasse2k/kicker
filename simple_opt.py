@@ -1,4 +1,11 @@
 import pandas as pd
+import random 
+
+# Function to print the section
+def print_section(title, players):
+    print(title)
+    for _, player in players.iterrows():
+        print(f"{player['club']} - {player['name']} - Predicted Points: {player['predicted_points']}")
 
 # Read the data from the CSV file
 file_name = "C:\\Users\\bjoer\\Documents\\GitHub\\kicker\\players-data.csv"
@@ -87,11 +94,6 @@ for iteration in range(10):
 
 # Display the final results
 best_players = players_data.loc[best_indices]
-
-def print_section(title, players):
-    print(title)
-    for _, player in players.iterrows():
-        print(f"{player['club']} - {player['name']} - Predicted Points: {player['predicted_points']}")
 
 print_section("FORWARD", best_players[best_players['position'] == 'FORWARD'])
 print_section("MIDFIELDER", best_players[best_players['position'] == 'MIDFIELDER'])
