@@ -1,77 +1,512 @@
-import pandas as pd
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktives Manager Spiel - Startelf Optimierungsalgorithmus</title>
+   <style>
+    body {
+        font-family: 'Courier New', monospace;
+        background-color: #ffffff;
+        color: #161a1d;
+        margin: 0;
+        padding: 20px;
+    }
+    h1 {
+        color: #a4161a;
+        font-weight: bold;
+    }
+    h2, label {
+        color: #a4161a;
+    }
+    .position-section {
+        margin-bottom: 20px;
+    }
+    .players-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+.notification {
+    color: white;
+    background-color: green;
+    padding: 10px;
+    margin: 10px 0;
+    display: none;
+    text-align: center;
+}
+    .player {
+    flex: 0 0 calc(33.333% - 20px);
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid #a4161a;
+    border-radius: 10px;
+    box-sizing: border-box;
+    line-height: 1.5; /* Adjusting line height for more spacing */
+}
 
-# Read the data from the CSV file
-file_path = "path/to/your/players-data.csv"  # Update with your file path
-players_data = pd.read_csv(file_path)
+    @media (max-width: 950px) {
+        .player { flex: 0 0 calc(50% - 20px); }
+    }
+    @media (max-width: 480px) {
+        .player { flex: 0 0 calc(100% - 20px); }
+    }
+    .player input[type="checkbox"] {
+        margin-right: 10px;
+    }
+    .player .cost, .player .points-per-million {
+        font-size: 12px;
+        color: #666;
+    }
+    .points {
+        font-size: 12px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        padding: 0;
+        margin: 0;
+    }
+    .points label {
+        flex-grow: 0;
+        width: 120px;
+        margin-right: 5px;
+    }
+    .points input {
+        width: 40px;
+        text-align: center;
+    }
+    .points button {
+        font-size: 14px;
+        padding: 0 10px;
+        margin: 0 2px;
+    }
+    .points-container {
+        display: flex;
+        align-items: center;
+    }
+    button {
+        padding: 8px 16px;
+        background-color: #a4161a;
+        color: #f5f3f4;
+        border: none;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: background-color 0.3s;
+    }
+    button:hover {
+        background-color: #e5383b;
+    }
+    p.how-to {
+        color: #b1a7a6;
+        font-style: italic;
+    }
+</style>
 
-# Define the initial players by their IDs
-player_ids = ["pl-k00133398", "pl-k00110717", "pl-k00076954", "pl-k00057343", "pl-k00058007", "pl-k00066753", "pl-k00086138", "pl-k00058003", "pl-k00111367", "pl-k00081465"]
-initial_indices = [players_data[players_data['ID'] == player_id].index[0] for player_id in player_ids]
+</head>
+<body>
+    <h1>Interaktives Manager Spiel - Startelf Optimierung</h1>
+    <p class="how-to">Keine Daten werden gespeichert, die Berechnung findet komplett auf deinem PC statt.</p>
+    <p class="how-to">So benutzt du das Tool:</p>
+    <ol class="how-to">
+        <li>Wähle dein Torwart-Trio aus</li>
+        <li>Wähle deine Back-ups und 0.5er Spieler aus</li>
+        <li>Gib dein verbleibendes Restbudget für die Startelf ein</li>
+        <li>Wähle die aktuellen 10 Spieler in deiner Startelf aus</li>
+        <li>Bearbeite die Punkteerwartung für Spieler</li>
+        <li>Starte die Optimierung</li>
+    </ol>
+    <label for="budget">Budget (in Millionen):</label>
+    <input type="text" id="budget" value="40"><br><br>
+    <div id="notification" class="notification"></div>
+    <button id="start-optimization" onclick="startOptimization()">Optimierung starten</button>
+    <button id="select-random-players" onclick="selectRandomPlayers()">Zufällige Spieler auswählen</button>
+    <div id="notification" style="display:none; background-color: green; color: white; padding: 10px;"></div>
 
-# Define the budget constraint
-BUDGET_CONSTRAINT = 30.7 * 10**6
 
-# Function to calculate the total score and cost
-def calculate_score_and_cost(indices):
-    total_score = players_data.loc[indices, 'predicted_points'].sum()
-    total_cost = players_data.loc[indices, 'cost'].sum()
-    return total_score, total_cost
+    <h2 id="original-team-title" style="display: none;"><strong>Ursprüngliche Spieler:</strong></h2>
+    <div id="original-team" style="display: none; width: 100%; font-size: small;"></div>
+    <p id="original-total-cost" style="display: none;"></p>
+    <p id="original-total-points" style="display: none;"></p>
 
-# Function to check if the team is valid
-def is_valid_team(indices):
-    selected_players = players_data.loc[indices]
-    num_defenders = (selected_players['position'] == 'DEFENDER').sum()
-    num_midfielders = (selected_players['position'] == 'MIDFIELDER').sum()
-    num_forwards = (selected_players['position'] == 'FORWARD').sum()
-    return (
-        num_defenders >= 3 and num_defenders <= 4 and
-        num_midfielders >= 3 and num_midfielders <= 5 and
-        num_forwards >= 1 and num_forwards <= 3 and
-        len(indices) == 10
-    )
+    <h2 id="optimized-team-title" style="display: none;">Optimiertes Team:</h2>
+    <div id="optimized-team" style="display: none; width: 100%; font-size: small;">
+        <!-- The optimized team will be displayed here -->
+    </div>
+    <p id="total-cost" style="display: none;"></p>
+    <p id="total-points" style="display: none;"></p>
+    <div id="time-taken" style="display: none;"></div>
+    <div id="iterations" style="display: none;"></div>
 
-# Optimization logic
-best_indices = initial_indices.copy()
-best_score, best_cost = calculate_score_and_cost(best_indices)
+    <br><br>
+    <h2>Startelf für Optimierung auswählen</h2>
+    <div id="FORWARD" class="position-section">
+        <h2>STÜRMER</h2>
+        <div class="players-list"></div>
+    </div>
+    <div id="MIDFIELDER" class="position-section">
+        <h2>MITTELFELD</h2>
+        <div class="players-list"></div>
+    </div>
+    <div id="DEFENDER" class="position-section">
+        <h2>VERTEIDIGER</h2>
+        <div class="players-list"></div>
+    </div>
+</body>
+    <script>
+ var playersData = [
+{name: "Randal Kolo Muani", club: "Eintracht Frankfurt", position: "FORWARD", cost: 7500000, predicted_points: 247},
+{name: "Sebastien Haller", club: "Borussia Dortmund", position: "FORWARD", cost: 5500000, predicted_points: 186},
+{name: "Niclas Füllkrug", club: "Werder Bremen", position: "FORWARD", cost: 5200000, predicted_points: 195},
+{name: "Sheraldo Becker", club: "1. FC Union Berlin", position: "FORWARD", cost: 4800000, predicted_points: 172},
+{name: "Donyell Malen", club: "Borussia Dortmund", position: "FORWARD", cost: 4500000, predicted_points: 167},
+{name: "Andrej Kramaric", club: "TSG Hoffenheim", position: "FORWARD", cost: 4300000, predicted_points: 162},
+{name: "Timo Werner", club: "RB Leipzig", position: "FORWARD", cost: 4300000, predicted_points: 155},
+{name: "Karim Onisiwo", club: "1. FSV Mainz 05", position: "FORWARD", cost: 4300000, predicted_points: 143},
+{name: "Karim Adeyemi", club: "Borussia Dortmund", position: "FORWARD", cost: 4300000, predicted_points: 166},
+{name: "Lois Openda", club: "RB Leipzig", position: "FORWARD", cost: 4300000, predicted_points: 160},
+{name: "Michael Gregoritsch", club: "SC Freiburg", position: "FORWARD", cost: 4200000, predicted_points: 161},
+{name: "Marius Bülter", club: "TSG Hoffenheim", position: "FORWARD", cost: 4000000, predicted_points: 142},
+{name: "Marvin Ducksch", club: "Werder Bremen", position: "FORWARD", cost: 3800000, predicted_points: 162},
+{name: "Patrik Schick", club: "Bayer 04 Leverkusen", position: "FORWARD", cost: 3800000, predicted_points: 105},
+{name: "Ludovic Ajorque", club: "1. FSV Mainz 05", position: "FORWARD", cost: 3800000, predicted_points: 137},
+{name: "Wout Weghorst", club: "TSG Hoffenheim", position: "FORWARD", cost: 3600000, predicted_points: 145},
+{name: "Eric Maxim Choupo-Moting", club: "Bayern München", position: "FORWARD", cost: 3300000, predicted_points: 102},
+{name: "Kevin Behrens", club: "1. FC Union Berlin", position: "FORWARD", cost: 3000000, predicted_points: 109},
+{name: "Serhou Guirassy", club: "VfB Stuttgart", position: "FORWARD", cost: 3000000, predicted_points: 131},
+{name: "Mergim Berisha", club: "FC Augsburg", position: "FORWARD", cost: 3000000, predicted_points: 117},
+{name: "Youssoufa Moukoko", club: "Borussia Dortmund", position: "FORWARD", cost: 3000000, predicted_points: 104},
+{name: "Alassane Plea", club: "Bor. Mönchengladbach", position: "FORWARD", cost: 2800000, predicted_points: 125},
+{name: "Ermedin Demirovic", club: "FC Augsburg", position: "FORWARD", cost: 2800000, predicted_points: 117},
+{name: "Ihlas Bebou", club: "TSG Hoffenheim", position: "FORWARD", cost: 2600000, predicted_points: 107},
+{name: "Victor Boniface", club: "Bayer 04 Leverkusen", position: "FORWARD", cost: 2600000, predicted_points: 122},
+{name: "Benjamin Sesko", club: "RB Leipzig", position: "FORWARD", cost: 2600000, predicted_points: 103},
+{name: "Lucas Höler", club: "SC Freiburg", position: "FORWARD", cost: 2500000, predicted_points: 110},
+{name: "Tim Kleindienst", club: "1. FC Heidenheim", position: "FORWARD", cost: 2400000, predicted_points: 117},
+{name: "Jordan", club: "1. FC Union Berlin", position: "FORWARD", cost: 2300000, predicted_points: 71},
+{name: "Jonas Wind", club: "VfL Wolfsburg", position: "FORWARD", cost: 2300000, predicted_points: 90},
+{name: "Jamal Musiala", club: "Bayern München", position: "MIDFIELDER", cost: 6500000, predicted_points: 261},
+{name: "Vincenzo Grifo", club: "SC Freiburg", position: "MIDFIELDER", cost: 6000000, predicted_points: 265},
+{name: "Kingsley Coman", club: "Bayern München", position: "MIDFIELDER", cost: 6000000, predicted_points: 235},
+{name: "Serge Gnabry", club: "Bayern München", position: "MIDFIELDER", cost: 5800000, predicted_points: 234},
+{name: "Joshua Kimmich", club: "Bayern München", position: "MIDFIELDER", cost: 5800000, predicted_points: 251},
+{name: "Ellyes Skhiri", club: "Eintracht Frankfurt", position: "MIDFIELDER", cost: 5500000, predicted_points: 227},
+{name: "Florian Wirtz", club: "Bayer 04 Leverkusen", position: "MIDFIELDER", cost: 5500000, predicted_points: 243},
+{name: "Thomas Müller", club: "Bayern München", position: "MIDFIELDER", cost: 5000000, predicted_points: 206},
+{name: "Jonas Hofmann", club: "Bayer 04 Leverkusen", position: "MIDFIELDER", cost: 5000000, predicted_points: 230},
+{name: "Julian Brandt", club: "Borussia Dortmund", position: "MIDFIELDER", cost: 5000000, predicted_points: 228},
+{name: "Leroy Sané", club: "Bayern München", position: "MIDFIELDER", cost: 5000000, predicted_points: 219},
+{name: "Florian Kainz", club: "1. FC Köln", position: "MIDFIELDER", cost: 4500000, predicted_points: 215},
+{name: "Dani Olmo", club: "RB Leipzig", position: "MIDFIELDER", cost: 4500000, predicted_points: 204},
+{name: "Wataru Endo", club: "VfB Stuttgart", position: "MIDFIELDER", cost: 4500000, predicted_points: 203},
+{name: "Christoph Baumgartner", club: "RB Leipzig", position: "MIDFIELDER", cost: 4500000, predicted_points: 178},
+{name: "Mario Götze", club: "Eintracht Frankfurt", position: "MIDFIELDER", cost: 4200000, predicted_points: 199},
+{name: "Konrad Laimer", club: "Bayern München", position: "MIDFIELDER", cost: 4200000, predicted_points: 170},
+{name: "Xaver Schlager", club: "RB Leipzig", position: "MIDFIELDER", cost: 4200000, predicted_points: 163},
+{name: "Marco Reus", club: "Borussia Dortmund", position: "MIDFIELDER", cost: 4000000, predicted_points: 182},
+{name: "Leon Goretzka", club: "Bayern München", position: "MIDFIELDER", cost: 4000000, predicted_points: 180},
+{name: "Ritsu Doan", club: "SC Freiburg", position: "MIDFIELDER", cost: 4000000, predicted_points: 189},
+{name: "Xavi Simons", club: "RB Leipzig", position: "MIDFIELDER", cost: 4000000, predicted_points: 187},
+{name: "Granit Xhaka", club: "Bayer 04 Leverkusen", position: "MIDFIELDER", cost: 3800000, predicted_points: 193},
+{name: "Grischa Prömel", club: "TSG Hoffenheim", position: "MIDFIELDER", cost: 3800000, predicted_points: 162},
+{name: "Jae-Sung Lee", club: "1. FSV Mainz 05", position: "MIDFIELDER", cost: 3600000, predicted_points: 153},
+{name: "Jesper Lindström", club: "Eintracht Frankfurt", position: "MIDFIELDER", cost: 3600000, predicted_points: 172},
+{name: "Florian Grillitsch", club: "TSG Hoffenheim", position: "MIDFIELDER", cost: 3200000, predicted_points: 158},
+{name: "Lucas Tousart", club: "1. FC Union Berlin", position: "MIDFIELDER", cost: 3200000, predicted_points: 154},
+{name: "Maximilian Arnold", club: "VfL Wolfsburg", position: "MIDFIELDER", cost: 3000000, predicted_points: 186},
+{name: "Robert Andrich", club: "Bayer 04 Leverkusen", position: "MIDFIELDER", cost: 3000000, predicted_points: 157},
+{name: "Jeremie Frimpong", club: "Bayer 04 Leverkusen", position: "DEFENDER", cost: 5500000, predicted_points: 227},
+{name: "Matthijs de Ligt", club: "Bayern München", position: "DEFENDER", cost: 5000000, predicted_points: 216},
+{name: "Min-Jae Kim", club: "Bayern München", position: "DEFENDER", cost: 4700000, predicted_points: 207},
+{name: "Matthias Ginter", club: "SC Freiburg", position: "DEFENDER", cost: 4500000, predicted_points: 219},
+{name: "Willi Orban", club: "RB Leipzig", position: "DEFENDER", cost: 4200000, predicted_points: 202},
+{name: "Niklas Süle", club: "Borussia Dortmund", position: "DEFENDER", cost: 3800000, predicted_points: 187},
+{name: "Benjamin Pavard", club: "Bayern München", position: "DEFENDER", cost: 3800000, predicted_points: 181},
+{name: "Edmond Tapsoba", club: "Bayer 04 Leverkusen", position: "DEFENDER", cost: 3800000, predicted_points: 177},
+{name: "Raphael Guerreiro", club: "Bayern München", position: "DEFENDER", cost: 3600000, predicted_points: 174},
+{name: "Nico Schlotterbeck", club: "Borussia Dortmund", position: "DEFENDER", cost: 3600000, predicted_points: 195},
+{name: "Mats Hummels", club: "Borussia Dortmund", position: "DEFENDER", cost: 3500000, predicted_points: 169},
+{name: "Philipp Lienhart", club: "SC Freiburg", position: "DEFENDER", cost: 3500000, predicted_points: 177},
+{name: "Danilho Doekhi", club: "1. FC Union Berlin", position: "DEFENDER", cost: 3400000, predicted_points: 182},
+{name: "Robin Knoche", club: "1. FC Union Berlin", position: "DEFENDER", cost: 3200000, predicted_points: 177},
+{name: "Timo Hübers", club: "1. FC Köln", position: "DEFENDER", cost: 3200000, predicted_points: 161},
+{name: "Dayot Upamecano", club: "Bayern München", position: "DEFENDER", cost: 3200000, predicted_points: 155},
+{name: "Alphonso Davies", club: "Bayern München", position: "DEFENDER", cost: 3200000, predicted_points: 163},
+{name: "Jonathan Tah", club: "Bayer 04 Leverkusen", position: "DEFENDER", cost: 3000000, predicted_points: 145},
+{name: "Christian Günter", club: "SC Freiburg", position: "DEFENDER", cost: 3000000, predicted_points: 162},
+{name: "Alejandro Grimaldo", club: "Bayer 04 Leverkusen", position: "DEFENDER", cost: 3000000, predicted_points: 170},
+{name: "Ramy Bensebaini", club: "Borussia Dortmund", position: "DEFENDER", cost: 3000000, predicted_points: 174},
+{name: "Hiroki Ito", club: "VfB Stuttgart", position: "DEFENDER", cost: 3000000, predicted_points: 157},
+{name: "Kevin Vogt", club: "TSG Hoffenheim", position: "DEFENDER", cost: 2800000, predicted_points: 115},
+{name: "David Raum", club: "RB Leipzig", position: "DEFENDER", cost: 2800000, predicted_points: 139},
+{name: "Julian Ryerson", club: "Borussia Dortmund", position: "DEFENDER", cost: 2800000, predicted_points: 152},
+{name: "Mitchell Weiser", club: "Werder Bremen", position: "DEFENDER", cost: 2700000, predicted_points: 151},
+{name: "Julian Chabot", club: "1. FC Köln", position: "DEFENDER", cost: 2700000, predicted_points: 163},
+{name: "Benjamin Henrichs", club: "RB Leipzig", position: "DEFENDER", cost: 2600000, predicted_points: 145},
+{name: "Robin Koch", club: "Eintracht Frankfurt", position: "DEFENDER", cost: 2600000, predicted_points: 154},
+{name: "Andreas Hanche-Olsen", club: "1. FSV Mainz 05", position: "DEFENDER", cost: 2600000, predicted_points: 142}
+     ];  
 
-# Iterate over each player in the team
-for idx in initial_indices:
-    # Iterate over each player in the dataset
-    for replacement_idx in players_data.index:
-        # Skip if the replacement player is already in the team
-        if replacement_idx in best_indices:
-            continue
-        
-        # Check if the replacement player has the same position
-        if players_data.loc[idx, 'position'] != players_data.loc[replacement_idx, 'position']:
-            continue
-        
-        # Replace the player and check the new score and cost
-        new_indices = [replacement_idx if i == idx else i for i in best_indices]
-        new_score, new_cost = calculate_score_and_cost(new_indices)
-        
-        # If the new team is valid and the score is improved, update the best team
-        if new_score > best_score and new_cost <= BUDGET_CONSTRAINT and is_valid_team(new_indices):
-            best_score = new_score
-            best_indices = new_indices
+playersData.forEach((player, index) => {
+    player.index = index;
+});
 
-# Display the results
-best_players = players_data.loc[best_indices]
+function createPlayerDiv(player, index) {
+    var div = document.createElement("div");
+    div.className = "player";
+    div.dataset.index = index; // Assign index as data attribute
+    div.dataset.cost = player.cost; // Save the cost as a data attribute
+    div.innerHTML = `
+        <input type="checkbox">
+        <strong>${player.name}</strong> - ${player.club}<br>
+        <span class="cost">Kosten: ${(player.cost / 1000000).toFixed(1)}m</span> -
+        <span class="points-per-million">Punkte pro Millionen: ${(player.predicted_points / player.cost * 1000000).toFixed(2)}</span><br>
+        <div class="points-container">
+            <label for="points">Erwartete Punkte:</label>
+            <div class="points">
+                <input type="text" id="points" value="${player.predicted_points}" oninput="updatePointsPerMillion(this)">
+                <button onclick="adjustPoints(this, -1)">-</button>
+                <button onclick="adjustPoints(this, 1)">+</button>
+            </div>
+        </div>`;
+    return div;
+}
 
-def print_section(title, players):
-    print(title)
-    for _, player in players.iterrows():
-        print(f"{player['club']} - {player['name']} - Predicted Points: {player['predicted_points']}")
 
-print_section("FORWARD", best_players[best_players['position'] == 'FORWARD'])
-print_section("MIDFIELDER", best_players[best_players['position'] == 'MIDFIELDER'])
-print_section("DEFENDER", best_players[best_players['position'] == 'DEFENDER'])
+function updatePointsPerMillion(input) {
+    var playerDiv = input.closest(".player");
+    var cost = parseInt(playerDiv.dataset.cost); // Abrufen der Kosten aus dem Datenattribut
+    var pointsPerMillionSpan = playerDiv.querySelector(".points-per-million");
+    var points = parseInt(input.value);
+    pointsPerMillionSpan.textContent = `Punkte pro Millionen: ${(points / cost * 1000000).toFixed(2)}`;
+}
+function calculateScoreAndCost(indices, players) {
+    let totalScore = 0;
+    let totalCost = 0;
+    indices.forEach((index) => {
+        totalScore += players[index].predicted_points;
+        totalCost += players[index].cost;
+    });
+    return { totalScore, totalCost };
+}
 
-print("\nSummary")
-print("Sum of predicted points:", best_players['predicted_points'].sum())
-print("Sum of predicted lower bounds:", best_players['lower_bound'].sum())
-print("Sum of predicted upper bounds:", best_players['upper_bound'].sum())
+function isValidTeam(indices) {
+    const uniqueIndices = new Set(indices);
+    return uniqueIndices.size === indices.length && uniqueIndices.size === 10;
+}
+function adjustPoints(button, delta) {
+    var pointsInput = button.parentElement.querySelector("input");
+    var points = parseInt(pointsInput.value) + delta;
+    pointsInput.value = points;
+    updatePointsPerMillion(pointsInput);
 
-total_budget_used = best_players['cost'].sum()
-print("\nTotal Budget Used:", total_budget_used)
-print("Budget Remaining:", BUDGET_CONSTRAINT - total_budget_used)
+    // Update the playersData array with the new points value
+    const playerDiv = button.closest(".player");
+    const playerIndex = parseInt(playerDiv.dataset.index);
+    playersData[playerIndex].predicted_points = points;
+}
+
+///##### OPTIMIZATION FUNCTION START #####
+
+function startOptimization() {
+    const startTime = performance.now();
+
+    // Get all selected players
+    const selectedPlayers = Array.from(document.querySelectorAll(".player input[type='checkbox']:checked"))
+        .map(checkbox => checkbox.closest(".player"));
+
+    // Check if exactly 10 players are selected and if they fit within the budget
+    const budget = parseFloat(document.getElementById("budget").value) * 10**6;
+    const totalCost = selectedPlayers.reduce((sum, playerDiv) => sum + parseInt(playerDiv.dataset.cost), 0);
+
+    if (selectedPlayers.length !== 10 || totalCost > budget) {
+        alert("Bitte wähle 10 Spieler aus, die im Budget liegen");
+        return;
+    }
+
+    displayOptimizationFeedback("Spieler erfasst - Optimierung gestartet");
+
+    // Initial team indices
+    const initialIndices = Array.from(document.querySelectorAll(".player input[type='checkbox']:checked"))
+        .map(checkbox => {
+            const playerDiv = checkbox.closest(".player");
+            const playerName = playerDiv.querySelector("strong").textContent;
+            return playersData.findIndex(player => player.name === playerName);
+        });
+
+    const originalTeam = initialIndices.map(index => playersData[index]);
+    const originalTeamNames = originalTeam.map(player => player.name).join(", ");
+    const originalTeamCost = originalTeam.reduce((sum, player) => sum + player.cost, 0) / 1000000;
+    const originalTeamPoints = originalTeam.reduce((sum, player) => sum + player.predicted_points, 0);
+
+    document.getElementById("original-players-list").innerHTML = `<h2><strong>Ursprüngliche Spieler:</strong></h2><p>${originalTeamNames}</p>`;
+    document.getElementById("original-total-cost").innerHTML = `<p>Totalen Kosten: ${originalTeamCost.toFixed(1)}m</p>`;
+    document.getElementById("original-total-points").innerHTML = `<p>Erwarteten Punkte: ${originalTeamPoints}</p>`;
+
+    const BUDGET_CONSTRAINT = budget;
+    let bestIndices = initialIndices.slice();
+    let { totalScore: bestScore, totalCost: bestCost } = calculateScoreAndCost(bestIndices, playersData);
+    let resetCounter = 0;
+    let iterations = 0;
+
+    while (resetCounter < 10) {
+        let currentIndices = bestIndices.slice();
+        let improved = false;
+
+        for (const idx of currentIndices) {
+            for (let replacementIdx = 0; replacementIdx < playersData.length; replacementIdx++) {
+                if (replacementIdx === idx || currentIndices.includes(replacementIdx)) continue;
+                if (playersData[idx].position !== playersData[replacementIdx].position) continue;
+
+                iterations++;
+
+                let newIndices = currentIndices.map(i => i === idx ? replacementIdx : i);
+                let { totalScore: newScore, totalCost: newCost } = calculateScoreAndCost(newIndices, playersData);
+
+                if (newScore > bestScore && newCost <= BUDGET_CONSTRAINT && isValidTeam(newIndices)) {
+                    bestScore = newScore;
+                    bestIndices = newIndices;
+                    improved = true;
+                    break;
+                }
+            }
+
+            if (improved) continue;
+
+            // Random replacement logic
+            const randomIdx = currentIndices[Math.floor(Math.random() * currentIndices.length)];
+            const randomReplacementIdx = playersData.findIndex(player => player.position === playersData[randomIdx].position);
+            currentIndices = currentIndices.map(i => i === randomIdx ? randomReplacementIdx : i);
+            const { totalScore: newScore, totalCost: newCost } = calculateScoreAndCost(currentIndices, playersData);
+
+            if (newScore > bestScore && newCost <= BUDGET_CONSTRAINT && isValidTeam(currentIndices)) {
+                bestScore = newScore;
+                bestIndices = currentIndices;
+            } else {
+                resetCounter++;
+            }
+        }
+    }
+
+    const endTime = performance.now();
+    const totalTime = (endTime - startTime) / 1000;
+
+    document.getElementById("time-taken").innerHTML = `Total Time: ${totalTime.toFixed(2)} seconds`;
+    document.getElementById("iterations").innerHTML = `Total Iterations: ${iterations}`;
+
+    const finalBestPlayers = bestIndices.map(index => playersData[index]);
+    displayFinalTeam(finalBestPlayers);
+}
+
+
+///#### END OF OPTIMIZATION #### 
+
+function displayOptimizationFeedback(message) {
+    const notificationDiv = document.getElementById("notification");
+    notificationDiv.style.display = "block";
+    notificationDiv.textContent = message;
+    setTimeout(() => {
+        notificationDiv.style.display = "none";
+    }, 2000);
+}
+
+// Adding players to the list
+playersData.forEach(function(player) {
+    var positionDiv = document.getElementById(player.position);
+    var playersListDiv = positionDiv.querySelector(".players-list");
+    playersListDiv.appendChild(createPlayerDiv(player));
+});
+
+document.getElementById("start-optimization").addEventListener("click", startOptimization);
+
+
+function selectRandomPlayers() {
+    let budget = parseFloat(document.getElementById("budget").value) * 10 ** 6;
+    const totalPlayers = 10;
+
+    const requiredPlayers = {
+        'FORWARD': 2,
+        'MIDFIELDER': 4,
+        'DEFENDER': 4
+    };
+
+    // Clear any previously selected players
+    document.querySelectorAll(".player input[type='checkbox']").forEach(checkbox => checkbox.checked = false);
+
+    let selectedCount = 0;
+
+    for (const position in requiredPlayers) {
+        const playersInPosition = playersData.filter(player => player.position === position);
+        const shuffledPlayers = playersInPosition.sort(() => 0.5 - Math.random());
+
+        // Select random players for the given position
+        let count = 0;
+        for (const player of shuffledPlayers) {
+            const remainingPlayers = totalPlayers - selectedCount;
+            const remainingBudgetPerPlayer = budget / remainingPlayers;
+
+            if (count < requiredPlayers[position] && player.cost <= remainingBudgetPerPlayer) {
+                const playerDivs = document.querySelectorAll(`#${position} .player`);
+                const playerIndex = playersData.indexOf(player);
+                const playerDiv = Array.from(playerDivs).find(div => div.textContent.includes(player.name));
+                const checkbox = playerDiv.querySelector("input[type='checkbox']");
+                checkbox.checked = true;
+                budget -= player.cost;
+                count++;
+                selectedCount++;
+            }
+        }
+    }
+}
+
+function displayFinalTeam(bestPlayers) {
+    let forwards = bestPlayers.filter(player => player.position === "FORWARD");
+    let midfielders = bestPlayers.filter(player => player.position === "MIDFIELDER");
+    let defenders = bestPlayers.filter(player => player.position === "DEFENDER");
+
+    let forwardLine = forwards.map(player => `${player.name} (${(player.cost / 1000000).toFixed(1)}m)`).join(" - ");
+    let midfielderLine = midfielders.map(player => `${player.name} (${(player.cost / 1000000).toFixed(1)}m)`).join(" - ");
+    let defenderLine = defenders.map(player => `${player.name} (${(player.cost / 1000000).toFixed(1)}m)`).join(" - ");
+
+    let finalTeamDiv = document.getElementById("optimized-team");
+    finalTeamDiv.innerHTML = `
+        <p>${forwardLine}</p>
+        <p>${midfielderLine}</p>
+        <p>${defenderLine}</p>
+    `;
+
+    // Calculate total cost and expected points
+    let totalCost = bestPlayers.reduce((sum, player) => sum + player.cost, 0) / 1000000;
+    let totalPoints = bestPlayers.reduce((sum, player) => sum + player.predicted_points, 0);
+
+    // Display total cost and expected points
+    document.getElementById("total-cost").textContent = `Totale Kosten: ${totalCost.toFixed(1)}m`;
+    document.getElementById("total-points").textContent = `Erwartete Punkte: ${totalPoints.toFixed(2)}`;
+
+    // Make everything visible
+    document.getElementById("optimized-team-title").style.display = "block";
+    finalTeamDiv.style.display = "block";
+    document.getElementById("total-cost").style.display = "block";
+    document.getElementById("total-points").style.display = "block";
+}
+function displayOptimizationFeedback(message, color) {
+    const feedbackDiv = document.getElementById("optimization-feedback");
+    feedbackDiv.textContent = message;
+    feedbackDiv.style.color = color;
+    setTimeout(() => feedbackDiv.textContent = "", 3000); // Nachricht nach 3 Sekunden entfernen
+}
+function displayOriginalTeam(originalPlayers) {
+    const playerList = originalPlayers.map(player => `${player.name} (${(player.cost / 1000000).toFixed(1)}m, ${player.predicted_points} Punkte)`).join(", ");
+    document.getElementById("original-players-list").textContent = `Ursprüngliche Spieler: ${playerList}`;
+
+    const totalCost = originalPlayers.reduce((sum, player) => sum + player.cost, 0) / 1000000;
+    const totalPoints = originalPlayers.reduce((sum, player) => sum + player.predicted_points, 0);
+    document.getElementById("original-total-cost").textContent = `Ursprüngliche Kosten: ${totalCost.toFixed(1)}m`;
+    document.getElementById("original-total-points").textContent = `Ursprüngliche erwartete Punkte: ${totalPoints}`;
+}
+
+</script>
+</html>
+
+              
+
