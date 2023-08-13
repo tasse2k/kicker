@@ -298,13 +298,10 @@ function adjustPoints(button, delta) {
     playersData[playerIndex].predicted_points = points;
 }
 
+##### OPTIMIZATION FUNCTION START #####
 
 function startOptimization() {
-    // Startzeit aufzeichnen
-    const startTime = Date.now();
-
-    // Iterationszähler initialisieren
-    let iterations = 0;
+    const startTime = new Date().getTime();
 
     // Get all selected players
     const selectedPlayers = Array.from(document.querySelectorAll(".player input[type='checkbox']:checked"))
@@ -319,15 +316,7 @@ function startOptimization() {
         return;
     }
 
-    // Zeige die Benachrichtigung
-    const notification = document.getElementById("notification");
-    notification.textContent = "Optimierung gestartet";
-    notification.style.display = "block";
-
-    // Verzögere das Verschwinden der Benachrichtigung
-    setTimeout(() => {
-        notification.style.display = "none";
-    }, 2000);
+    displayOptimizationFeedback("Optimierung gestartet", "green");
 
     // Initial team indices
     const initialIndices = Array.from(document.querySelectorAll(".player input[type='checkbox']:checked"))
@@ -343,13 +332,16 @@ function startOptimization() {
     let { totalScore: bestScore, totalCost: bestCost } = calculateScoreAndCost(bestIndices, playersData);
     let resetCounter = 0;
 
+    let iterations = 0;
+
     while (resetCounter < 10) {
-        iterations++; // Iterationszähler erhöhen
         let currentIndices = bestIndices.slice();
         let improved = false;
 
         for (const idx of currentIndices) {
             for (let replacementIdx = 0; replacementIdx < playersData.length; replacementIdx++) {
+                iterations++;
+
                 if (replacementIdx === idx || currentIndices.includes(replacementIdx)) continue;
                 if (playersData[idx].position !== playersData[replacementIdx].position) continue;
 
@@ -381,27 +373,18 @@ function startOptimization() {
         }
     }
 
-    // Endzeit aufzeichnen und verstrichene Zeit berechnen
-    const endTime = Date.now();
-    const elapsedTime = (endTime - startTime) / 1000; // Zeit in Sekunden
+    const endTime = new Date().getTime();
+    const duration = (endTime - startTime) / 1000; // in seconds
 
-    // Zeige die Benachrichtigung
-    notification.textContent = `Optimierung abgeschlossen in ${elapsedTime.toFixed(2)} Sekunden mit ${iterations} Iterationen`;
-    notification.style.display = "block";
-
-    // Verzögere das Verschwinden der Benachrichtigung
-    setTimeout(() => {
-        notification.style.display = "none";
-    }, 5000);
+    console.log(`Optimization took ${duration} seconds.`);
+    console.log(`Total iterations: ${iterations}`);
 
     // Display the final result
-    const bestPlayers = bestIndices.map(index => playersData[index]);
-    displayFinalTeam(bestPlayers);
+    const finalBestPlayers = bestIndices.map(index => playersData[index]);
+    displayFinalTeam(finalBestPlayers, bestScore, bestCost, duration, iterations);
 }
 
-
-
-}
+#### END OF OPTIMIZATION #### 
 
 
 // Adding players to the list
