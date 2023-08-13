@@ -105,7 +105,7 @@
 
 </head>
 <body>
-    <h1>Interaktives Manager Spiel - Startelf Optimierungsalgorithmus</h1>
+    <h1>Interaktives Manager Spiel - Startelf Optimierung</h1>
     <p class="how-to">Keine Daten werden gespeichert, die Berechnung findet komplett auf deinem PC statt.</p>
     <p class="how-to">So benutzt du das Tool:</p>
     <ol class="how-to">
@@ -122,7 +122,16 @@
 <div id="notification" style="display:none; background-color: green; color: white; padding: 10px;"></div>
 <button id="start-optimization" onclick="startOptimization()">Optimierung starten</button>
 <button id="select-random-players" onclick="selectRandomPlayers()">Zufällige Spieler auswählen</button>
+<div id="original-players-list"></div>
+<div id="original-total-cost"></div>
+<div id="original-total-points"></div>
 <div id="optimization-feedback"></div>
+<div id="time-taken"></div>
+<div id="iterations"></div>
+<div id="selected-players-list"></div>
+<div id="total-cost"></div>
+<div id="total-points"></div>
+
 
 <h2 id="optimized-team-title" style="display: none;">Optimiertes Team:</h2>
 <div id="optimized-team" style="display: none; width: 100%; font-size: small;">
@@ -302,7 +311,7 @@ function adjustPoints(button, delta) {
 ///##### OPTIMIZATION FUNCTION START #####
 
 function startOptimization() {
-    const startTime = new Date().getTime();
+    const startTime = performance.now();
 
     // Get all selected players
     const selectedPlayers = Array.from(document.querySelectorAll(".player input[type='checkbox']:checked"))
@@ -317,7 +326,7 @@ function startOptimization() {
         return;
     }
 
-    displayOptimizationFeedback("Optimierung gestartet", "green");
+    displayOptimizationFeedback("Spieler erfasst - Optimierung gestartet");
 
     // Initial team indices
     const initialIndices = Array.from(document.querySelectorAll(".player input[type='checkbox']:checked"))
@@ -327,12 +336,19 @@ function startOptimization() {
             return playersData.findIndex(player => player.name === playerName);
         });
 
-    const BUDGET_CONSTRAINT = budget;
+    const originalTeam = initialIndices.map(index => playersData[index]);
+    const originalTeamNames = originalTeam.map(player => player.name).join(", ");
+    const originalTeamCost = originalTeam.reduce((sum, player) => sum + player.cost, 0) / 1000000;
+    const originalTeamPoints = originalTeam.reduce((sum, player) => sum + player.predicted_points, 0);
 
+    document.getElementById("original-players-list").innerHTML = `<h2><strong>Ursprüngliche Spieler:</strong></h2><p>${originalTeamNames}</p>`;
+    document.getElementById("original-total-cost").innerHTML = `<p>Totalen Kosten: ${originalTeamCost.toFixed(1)}m</p>`;
+    document.getElementById("original-total-points").innerHTML = `<p>Erwarteten Punkte: ${originalTeamPoints}</p>`;
+
+    const BUDGET_CONSTRAINT = budget;
     let bestIndices = initialIndices.slice();
     let { totalScore: bestScore, totalCost: bestCost } = calculateScoreAndCost(bestIndices, playersData);
     let resetCounter = 0;
-
     let iterations = 0;
 
     while (resetCounter < 10) {
@@ -341,10 +357,10 @@ function startOptimization() {
 
         for (const idx of currentIndices) {
             for (let replacementIdx = 0; replacementIdx < playersData.length; replacementIdx++) {
-                iterations++;
-
                 if (replacementIdx === idx || currentIndices.includes(replacementIdx)) continue;
                 if (playersData[idx].position !== playersData[replacementIdx].position) continue;
+
+                iterations++;
 
                 let newIndices = currentIndices.map(i => i === idx ? replacementIdx : i);
                 let { totalScore: newScore, totalCost: newCost } = calculateScoreAndCost(newIndices, playersData);
@@ -374,16 +390,16 @@ function startOptimization() {
         }
     }
 
-    const endTime = new Date().getTime();
-    const duration = (endTime - startTime) / 1000; // in seconds
+    const endTime = performance.now();
+    const totalTime = (endTime - startTime) / 1000;
 
-    console.log(`Optimization took ${duration} seconds.`);
-    console.log(`Total iterations: ${iterations}`);
+    document.getElementById("time-taken").innerHTML = `Total Time: ${totalTime.toFixed(2)} seconds`;
+    document.getElementById("iterations").innerHTML = `Total Iterations: ${iterations}`;
 
-    // Display the final result
     const finalBestPlayers = bestIndices.map(index => playersData[index]);
-    displayFinalTeam(finalBestPlayers, bestScore, bestCost, duration, iterations);
+    displayFinalTeam(finalBestPlayers);
 }
+
 
 ///#### END OF OPTIMIZATION #### 
 
@@ -472,6 +488,15 @@ function displayOptimizationFeedback(message, color) {
     feedbackDiv.textContent = message;
     feedbackDiv.style.color = color;
     setTimeout(() => feedbackDiv.textContent = "", 3000); // Nachricht nach 3 Sekunden entfernen
+}
+function displayOriginalTeam(originalPlayers) {
+    const playerList = originalPlayers.map(player => `${player.name} (${(player.cost / 1000000).toFixed(1)}m, ${player.predicted_points} Punkte)`).join(", ");
+    document.getElementById("original-players-list").textContent = `Ursprüngliche Spieler: ${playerList}`;
+
+    const totalCost = originalPlayers.reduce((sum, player) => sum + player.cost, 0) / 1000000;
+    const totalPoints = originalPlayers.reduce((sum, player) => sum + player.predicted_points, 0);
+    document.getElementById("original-total-cost").textContent = `Ursprüngliche Kosten: ${totalCost.toFixed(1)}m`;
+    document.getElementById("original-total-points").textContent = `Ursprüngliche erwartete Punkte: ${totalPoints}`;
 }
 
 </script>
