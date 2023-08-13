@@ -122,6 +122,7 @@
 <div id="notification" style="display:none; background-color: green; color: white; padding: 10px;"></div>
 <button id="start-optimization" onclick="startOptimization()">Optimierung starten</button>
 <button id="select-random-players" onclick="selectRandomPlayers()">Zufällige Spieler auswählen</button>
+<div id="optimization-feedback"></div>
 
 <h2 id="optimized-team-title" style="display: none;">Optimiertes Team:</h2>
 <div id="optimized-team" style="display: none; width: 100%; font-size: small;">
@@ -465,6 +466,12 @@ function displayFinalTeam(bestPlayers) {
     finalTeamDiv.style.display = "block";
     document.getElementById("total-cost").style.display = "block";
     document.getElementById("total-points").style.display = "block";
+}
+function displayOptimizationFeedback(message, color) {
+    const feedbackDiv = document.getElementById("optimization-feedback");
+    feedbackDiv.textContent = message;
+    feedbackDiv.style.color = color;
+    setTimeout(() => feedbackDiv.textContent = "", 3000); // Nachricht nach 3 Sekunden entfernen
 }
 
 </script>
